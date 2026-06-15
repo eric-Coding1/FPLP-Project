@@ -1,0 +1,137 @@
+# FPLP 语言 - 全功能展示
+# 运行：python main.py examples/showcase.fplp
+# 加速：python main.py --py examples/showcase.fplp
+
+print("╔════════════════════════════════════════════╗")
+print("║    FPLP - Fast Parallel Language Plus      ║")
+print("║    自研脚本语言 · 字节码VM · 图形编辑     ║")
+print("╚════════════════════════════════════════════╝")
+print()
+
+# ====================================================================
+# 1. 语言特性
+# ====================================================================
+print("━━━ 1. 语言特性 ━━━")
+
+# 递归
+fn fib(n) {
+    if n <= 1 { return n }
+    return fib(n - 1) + fib(n - 2)
+}
+print("fib(20) =", fib(20))               # 6765
+
+# 阶乘
+fn fact(n) {
+    if n <= 1 { return 1 }
+    return n * fact(n - 1)
+}
+print("10! =", fact(10))                  # 3628800
+
+# 箭头函数
+fn add(x, y) => x + y
+print("3+4 =", add(3, 4))
+
+# 高阶函数
+fn twice(f, x) => f(f(x))
+fn inc(n) => n + 1
+print("twice(inc,5) =", twice(inc, 5))    # 7
+
+# 闭包（用 make_adder 模式）
+fn make_adder(x) => fn(y) => x + y
+let add5 = make_adder(5)
+print("闭包 add5(3) =", add5(3))           # 8
+
+print()
+
+# ====================================================================
+# 2. 数据结构
+# ====================================================================
+print("━━━ 2. 数据结构 ━━━")
+
+let arr = [5, 3, 1, 4, 2]
+sort(arr)
+print("排序:", arr)                        # [1, 2, 3, 4, 5]
+
+push(arr, 99)
+print("push:", arr)                        # [1, 2, 3, 4, 5, 99]
+print("pop:", pop(arr), "→", arr)          # 99 [1, 2, 3, 4, 5]
+print("翻转:", reverse(arr))               # [5, 4, 3, 2, 1]
+
+let map = {"name": "FPLP", "ver": 1.0}
+print("字典:", map)
+print("键:", keys(map))
+print("值:", values(map))
+
+print()
+
+# ====================================================================
+# 3. 字符串
+# ====================================================================
+print("━━━ 3. 字符串 ━━━")
+
+let s = "Hello, FPLP World!"
+print("原文:", s)
+print("大写:", upper(s))
+print("长度:", len(s))
+print("包含FPLP?:", contains(s, "FPLP"))
+print("分割:", split(s, " "))
+print("替换:", str_replace(s, "FPLP", "Python"))
+print("拼接:", join(["a", "b", "c"], "-"))
+
+print()
+
+# ====================================================================
+# 4. 扩展库
+# ====================================================================
+print("━━━ 4. 扩展库 ━━━")
+
+print("JSON:", json.stringify({"lang": "FPLP"}, 2))
+print("Base64:", base64.encode("Hello FPLP"))
+print("MD5:", hashlib.md5("hello"))
+print("pi =", math.pi)
+print("sqrt(144) =", math.sqrt(144))
+print("gcd(12, 8) =", math.gcd(12, 8))
+print("hostname:", os.hostname())
+print("CPU cores:", os.cpu_count())
+
+print()
+
+# ====================================================================
+# 5. 正则表达式
+# ====================================================================
+print("━━━ 5. 正则 ━━━")
+
+let log = "2026-06-15 ERROR: disk full"
+let m = re.match("(\\d+-\\d+-\\d+)", log)
+if m != nil {
+    print("日期匹配位置:", m["start"], "-", m["end"])
+}
+print("提取数字:", re.findall("\\d+", "a1b2c3"))
+print("分割:", re.split("\\s+", "a b\tc"))
+print("替换:", re.sub("\\d+", "N", "abc123"))
+
+print()
+
+# ====================================================================
+# 6. 系统功能
+# ====================================================================
+print("━━━ 6. 系统信息 ━━━")
+
+print("FPLP版本:", sys.version())
+print("系统平台:", sys.platform())
+print("执行文件:", sys.executable())
+print("Python:", sys.platform())
+
+print()
+
+# ====================================================================
+# 7. 结束
+# ====================================================================
+print("╔════════════════════════════════════════════╗")
+print("║  演示完毕！                                ║")
+print("║                                           ║")
+print("║  Gitee: https://gitee.com/eric_Coding/    ║")
+print("║          fplp-project                      ║")
+print("║                                           ║")
+print("║  python main.py --py <file> → 10x加速     ║")
+print("╚════════════════════════════════════════════╝")
