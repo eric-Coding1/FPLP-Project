@@ -192,6 +192,59 @@ def _benchmark_file(filepath):
 def main():
     args = [a for a in sys.argv[1:] if a]
 
+    # Package management commands
+    if '--install' in args:
+        args.remove('--install')
+        if args:
+            from fplp.pkg import install, make_sample_package
+            for name in args:
+                if name.startswith('fplp-') or name in ('hello', 'stats', 'colors'):
+                    # Try local sample first
+                    sample_map = {'hello': 'fplp-hello', 'stats': 'fplp-stats', 'colors': 'fplp-colors'}
+                    mapped = sample_map.get(name, name)
+                    if mapped.startswith('fplp-'):
+                        if not make_sample_package(mapped):
+                            install(mapped)
+                    else:
+                        install(mapped)
+                else:
+                    install(name)
+        else:
+            print("Usage: python main.py --install <package-name>")
+        return
+
+    if '--pkg-list' in args:
+        from fplp.pkg import installed_packages, search_packages
+        installed = installed_packages()
+        if installed:
+            print(f"Installed packages ({len(installed)}):")
+            for name, path, mtime, size in installed:
+                import datetime
+                dt = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M')
+                print(f"  {name:<20s} {size:>6d}B  {dt}")
+        else:
+            print("No packages installed. Use --install <name>")
+            print("Available: fplp-hello, fplp-stats, fplp-colors")
+        return
+
+    if '--pkg-search' in args:
+        args.remove('--pkg-search')
+        query = ' '.join(args) if args else ''
+        from fplp.pkg import search_packages
+        results = search_packages(query)
+        if results:
+            print(f"Found {len(results)} package(s):")
+            for name, info in results:
+                print(f"  {name:<20s} {info.get('version', '?'):<8s} {info.get('description', '')}")
+        else:
+            print("No packages found.")
+        return
+
+    if '--pkg-load' in args:
+        from fplp.pkg import load_installed
+        load_installed()
+        return
+
     if '--bench' in args:
         args.remove('--bench')
         filepath = args[0] if args else ''

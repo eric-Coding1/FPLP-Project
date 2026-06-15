@@ -1,0 +1,12 @@
+# 测试加载的包
+print("=== 包测试 ===")
+
+# fplp-hello should be auto-loaded
+hello()
+greet("FPLP")
+
+# fplp-stats should be auto-loaded
+let nums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+print("mean:", mean(nums))
+print("median:", median(nums))
+print("stddev:", stddev(nums))
