@@ -128,6 +128,50 @@ def remove(name):
     return False
 
 
+class _PkgFn:
+    """Wraps a FPLP function as a callable Python function via transpilation."""
+    def __init__(self, source, func_name):
+        self.source = source
+        self.func_name = func_name
+
+    def __call__(self, *args):
+        # Transpile on first call
+        if not hasattr(self, '_py_func'):
+            from fplp.py_gen import transpile_to_py
+            py_code = transpile_to_py(self.source)
+            # Extract just the function part from the generated code
+            # The generated code wraps everything in _fplp_main()
+            # We need to exec it and extract the function
+            local_env = {}
+            # Add builtins needed for package code
+            from fplp.builtins import BUILTINS
+            for name, fn in BUILTINS.items():
+                if hasattr(fn, 'call'):
+                    def make_wrapper(f=fn):
+                        return lambda *a, **kw: f.call(list(a))
+                    local_env[name] = make_wrapper()
+            exec(compile(py_code, '<pkg>', 'exec'), local_env)
+            # Find the function in the locals
+            for k, v in local_env.items():
+                if k == self.func_name or (callable(v) and hasattr(v, '__code__')):
+                    # Check if this is our target function
+                    pass
+            self._py_func = local_env.get(self.func_name)
+            if not self._py_func:
+                # Fallback: scan for any function with matching name
+                for k, v in local_env.items():
+                    if k == self.func_name and callable(v):
+                        self._py_func = v
+                        break
+            if not self._py_func:
+                # Last resort: use the raw env
+                self._py_func = lambda *a: local_env.get('_fplp_main', lambda: None)()
+        return self._py_func(*args)
+
+    def __repr__(self):
+        return f"<PkgFn {self.func_name}>"
+
+
 def load_installed(env=None):
     """Load all installed packages into an environment."""
     _ensure_dir()
@@ -158,9 +202,22 @@ def load_installed(env=None):
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     source = f.read()
-                # Compile and execute
-                compiled = compile(source, path, "exec")
-                exec(compiled, env)
+                # Transpile FPLP source to Python (module mode) and exec
+                from fplp.py_gen import transpile_to_py
+                py_code = transpile_to_py(source, module_mode=True)
+                compiled = compile(py_code, path, "exec")
+                local_env = {}
+                from fplp.builtins import BUILTINS
+                for fname, fn in BUILTINS.items():
+                    if hasattr(fn, 'call'):
+                        def make_wrapper(f=fn):
+                            return lambda *a, **kw: f.call(list(a))
+                        local_env[fname] = make_wrapper()
+                exec(compiled, local_env)
+                # Extract all callable definitions from local_env
+                for k, v in local_env.items():
+                    if not k.startswith('_') and callable(v):
+                        env[k] = v
                 _loaded[name] = True
                 count += 1
             except Exception as e:
@@ -200,10 +257,11 @@ fn mean(arr) {
 fn median(arr) {
     sort(arr)
     let n = len(arr)
+    let mid = n / 2
     if n % 2 == 0 {
-        return (arr[n/2 - 1] + arr[n/2]) / 2
+        return (arr[mid - 1] + arr[mid]) / 2
     }
-    return arr[n/2]
+    return arr[mid]
 }
 
 fn stddev(arr) {

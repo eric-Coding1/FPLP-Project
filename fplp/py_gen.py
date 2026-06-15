@@ -15,12 +15,12 @@ from fplp.ast_nodes import *
 from fplp.builtins import BUILTINS
 
 
-def transpile_to_py(source):
+def transpile_to_py(source, module_mode=False):
     """Transpile FPLP source to a Python function that executes it."""
     lexer = Lexer(source)
     parser = Parser(lexer)
     program = parser.parse_program()
-    gen = PyGen()
+    gen = PyGen(module_mode=module_mode)
     return gen.generate(program)
 
 
@@ -130,23 +130,26 @@ def exec_fplp_cached(source, source_path=None):
 # ======================================================================
 
 class PyGen:
-    def __init__(self):
+    def __init__(self, module_mode=False):
         self._indent = 0
         self._lines = []
         self._builtin_names = set(BUILTINS.keys())
         self._temp_counter = 0
+        self._module_mode = module_mode
 
     def gen(self, program):
         self._lines = []
-        self._emit("def _fplp_main():")
-        self._indent = 1
-
-        for stmt in program.statements:
-            self._emit_stmt(stmt)
-
-        self._indent = 0
-        self._emit()
-        self._emit("_fplp_main()")
+        if self._module_mode:
+            for stmt in program.statements:
+                self._emit_stmt(stmt)
+        else:
+            self._emit("def _fplp_main():")
+            self._indent = 1
+            for stmt in program.statements:
+                self._emit_stmt(stmt)
+            self._indent = 0
+            self._emit()
+            self._emit("_fplp_main()")
         return '\n'.join(self._lines)
 
     generate = gen
