@@ -1,0 +1,31 @@
+# 新增扩展库测试
+print("=== http ===")
+print("http.get imported")
+
+print()
+print("=== base64 ===")
+let e = base64.encode("Hello FPLP!")
+print("encode:", e)
+print("decode:", base64.decode(e))
+
+print()
+print("=== hashlib ===")
+print("md5:", hashlib.md5("hello"))
+print("sha1:", hashlib.sha1("hello"))
+print("sha256:", hashlib.sha256("hello"))
+
+print()
+print("=== csv ===")
+let csv_text = "name,age\nAlice,30\nBob,25\n"
+let data = csv.parse(csv_text, true)
+print("parsed:", data)
+print("stringify:", csv.stringify([["a","b"],[1,2]]))
+
+print()
+print("=== re ===")
+print("match:", re.match("hello", "hello world"))
+print("search:", re.search("world", "hello world"))
+print("findall:", re.findall("\\d+", "a1b2c3"))
+print("split:", re.split(",", "a,b,c"))
+print("sub:", re.sub("foo", "bar", "foo foo baz"))
+print("escape:", re.escape("a+b*c"))

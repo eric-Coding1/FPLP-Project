@@ -1,0 +1,19 @@
+# 系统功能测试
+print("=== os 系统功能 ===")
+print("hostname:", os.hostname())
+print("username:", os.username())
+print("pid:", os.pid())
+print("cpu_count:", os.cpu_count())
+print("platform:", os.platform())
+print("sep:", os.sep)
+
+let r = os.exec("echo hello from FPLP")
+print("exec code:", r["code"])
+print("exec stdout:", r["stdout"])
+
+print()
+print("=== sys 运行时 ===")
+print("version:", sys.version())
+print("platform:", sys.platform())
+print("executable:", sys.executable())
+print("getsizeof:", sys.getsizeof([1, 2, 3]))
