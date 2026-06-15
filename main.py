@@ -129,8 +129,35 @@ def repl():
 
 def main():
     # Default: launch GUI
-    # Flags: --cli for REPL, or pass a .fplp file to run directly
+    # Flags:
+    #   --cli         CLI REPL
+    #   --py          Transpile to Python and execute (accelerated, 10x+)
+    #   --py-out      Output generated Python code and exit
     args = [a for a in sys.argv[1:] if a]
+
+    if '--py-out' in args:
+        args.remove('--py-out')
+        if args:
+            from fplp.py_gen import transpile_to_py
+            with open(args[0], 'r', encoding='utf-8') as f:
+                print(transpile_to_py(f.read()))
+        else:
+            print("Usage: python main.py --py-out <file.fplp>")
+        return
+
+    if '--py' in args:
+        args.remove('--py')
+        if args:
+            from fplp.py_gen import exec_fplp
+            path = args[0]
+            if not os.path.exists(path):
+                print(f"Error: file not found: {path}")
+                sys.exit(1)
+            with open(path, 'r', encoding='utf-8') as f:
+                exec_fplp(f.read())
+        else:
+            print("Usage: python main.py --py <file.fplp>")
+        return
 
     if '--cli' in args:
         args.remove('--cli')
