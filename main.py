@@ -97,7 +97,7 @@ def repl():
     """Start interactive REPL."""
     print("╔══════════════════════════════╗")
     print("║   FPLP v1.0 - Fast Parallel ║")
-    print("║   Language Plus * Bytecode   ║")
+    print("║   Language Plus ✦ Bytecode  ║")
     print("║                              ║")
     print("║   Type 'exit' to quit        ║")
     print("╚══════════════════════════════╝")
@@ -127,13 +127,93 @@ def repl():
             print(result)
 
 
+def _benchmark_file(filepath):
+    """Benchmark all execution modes for a given file."""
+    import time as _time
+    import io as _io
+    if not os.path.exists(filepath):
+        print(f"File not found: {filepath}")
+        return
+    with open(filepath, 'r', encoding='utf-8') as f:
+        source = f.read()
+    lexer = Lexer(source)
+    parser = Parser(lexer)
+    program = parser.parse_program()
+    code = compile_program(program)
+    N = 50
+    results = []
+
+    # Suppress stdout during benchmark
+    old_stdout = sys.stdout
+    sys.stdout = _io.StringIO()
+
+    # 1. Native VM
+    t0 = _time.perf_counter()
+    for _ in range(N):
+        VM().run_code(code, Environment())
+    t1 = _time.perf_counter()
+    results.append(("VM (native)", (t1 - t0) / N * 1000))
+
+    # 2. Python transpiler (cold)
+    from fplp.py_gen import transpile_to_py, _wrap_builtins
+    t0 = _time.perf_counter()
+    for _ in range(N):
+        py_code = transpile_to_py(source)
+        compiled = compile(py_code, '<fplp>', 'exec')
+        env = _wrap_builtins({})
+        exec(compiled, env)
+    t1 = _time.perf_counter()
+    results.append(("Py trans (cold)", (t1 - t0) / N * 1000))
+
+    # 3. Python transpiler (hot)
+    py_code = transpile_to_py(source)
+    compiled = compile(py_code, '<fplp>', 'exec')
+    t0 = _time.perf_counter()
+    for _ in range(N):
+        env = _wrap_builtins({})
+        exec(compiled, env)
+    t1 = _time.perf_counter()
+    results.append(("Py trans (hot)", (t1 - t0) / N * 1000))
+
+    sys.stdout = old_stdout
+    basename = os.path.basename(filepath)
+    print('=' * 53)
+
+    print(f"  Benchmark: {basename} ({N} iterations)")
+    print('=' * 53)
+    best = min(r[1] for r in results)
+    for name, ms in results:
+        rel = ms / best if best > 0 else 0
+        bar = '█' * int(rel * 20) if rel < 50 else '█' * 20 + '→'
+        print(f"  {name:<22s} {ms:8.2f}ms {rel:5.1f}x {bar}")
+    print('=' * 53)
+
+
 def main():
-    # Default: launch GUI
-    # Flags:
-    #   --cli         CLI REPL
-    #   --py          Transpile to Python and execute (accelerated, 10x+)
-    #   --py-out      Output generated Python code and exit
     args = [a for a in sys.argv[1:] if a]
+
+    if '--bench' in args:
+        args.remove('--bench')
+        filepath = args[0] if args else ''
+        if not filepath or not os.path.exists(filepath):
+            filepath = os.path.join(os.path.dirname(__file__), "examples", "demo.fplp")
+        if not os.path.exists(filepath): return
+        _benchmark_file(filepath)
+        return
+
+    if '--pyc' in args:
+        args.remove('--pyc')
+        if args:
+            from fplp.py_gen import exec_fplp_cached
+            path = args[0]
+            if not os.path.exists(path):
+                print(f"Error: file not found: {path}")
+                sys.exit(1)
+            with open(path, 'r', encoding='utf-8') as f:
+                exec_fplp_cached(f.read(), path)
+        else:
+            print("Usage: python main.py --pyc <file.fplp>")
+        return
 
     if '--py-out' in args:
         args.remove('--py-out')
@@ -161,10 +241,8 @@ def main():
 
     if '--cli' in args:
         args.remove('--cli')
-        if args:
-            sys.exit(run_file(args[0]))
-        else:
-            repl()
+        if args: sys.exit(run_file(args[0]))
+        else: repl()
     elif args:
         sys.exit(run_file(args[0]))
     else:

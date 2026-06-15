@@ -62,6 +62,69 @@ def exec_fplp(source, env=None):
     return env
 
 
+def _wrap_builtins(env):
+    """Populate an exec namespace with FPLP builtins as plain Python functions."""
+    for name, fn in BUILTINS.items():
+        if hasattr(fn, 'call'):
+            def make_wrapper(f=fn):
+                return lambda *args: f.call(list(args))
+            env[name] = make_wrapper()
+        elif callable(fn):
+            env[name] = fn
+    return env
+
+
+def exec_fplp_cached(source, source_path=None):
+    """Like exec_fplp, but caches the compiled Python to disk.
+
+    The .pyc is saved as <source>.fplpyc. If the cache is fresh,
+    skips parsing + transpilation entirely and loads bytecode directly.
+    """
+    import marshal
+    import struct
+    import importlib.util as _util
+    import hashlib
+
+    cache_path = (source_path or '') + '.fplpyc'
+    compile_needed = True
+
+    if source_path and os.path.exists(cache_path):
+        src_mtime = os.path.getmtime(source_path)
+        cache_mtime = os.path.getmtime(cache_path)
+        if cache_mtime > src_mtime:
+            # Cache looks fresh - try loading it
+            try:
+                with open(cache_path, 'rb') as f:
+                    magic = f.read(4)
+                    f.read(4)  # timestamp
+                    f.read(4)  # size
+                    code = marshal.load(f)
+                env = _wrap_builtins({})
+                exec(code, env)
+                return env
+            except Exception:
+                pass  # Cache invalid, recompile
+
+    # Compile
+    py_code = transpile_to_py(source)
+    code = compile(py_code, source_path or '<fplp>', 'exec')
+
+    # Save cache
+    if source_path:
+        try:
+            with open(cache_path, 'wb') as f:
+                f.write(_util.MAGIC_NUMBER)
+                f.write(struct.pack('<I', int(os.path.getmtime(source_path))))
+                f.write(struct.pack('<I', 0))
+                marshal.dump(code, f)
+        except Exception:
+            pass
+
+    env = _wrap_builtins({})
+    exec(code, env)
+    return env
+
+
 # ======================================================================
 # Python Generator
 # ======================================================================
