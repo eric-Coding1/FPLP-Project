@@ -1,0 +1,26 @@
+# 演示 for 关键字
+print("=== for i in range ===")
+for i in range(1, 6) {
+    print("计数:", i)
+}
+
+print()
+print("=== for 遍历数组 ===")
+let fruits = ["苹果", "香蕉", "橘子"]
+for f in fruits {
+    print("水果:", f)
+}
+
+print()
+print("=== for 遍历字符串 ===")
+for ch in "FPLP" {
+    print("字符:", ch)
+}
+
+print()
+print("=== 混合 loop 和 for ===")
+let total = 0
+for n in range(1, 11) {
+    total = total + n
+}
+print("1到10求和 =", total)

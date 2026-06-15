@@ -1,0 +1,48 @@
+# 测试所有新增函数
+
+# === 字符串函数 ===
+print("=== String Functions ===")
+print(split("a,b,c", ","))
+print(join(["x", "y", "z"], "-"))
+print(join(["hello", "world"], " "))
+print(upper("hello"))
+print(lower("WORLD"))
+print(trim("  hi  "))
+print(contains("hello", "ell"))
+print(starts_with("hello", "he"))
+print(ends_with("hello", "lo"))
+print(str_replace("foo bar foo", "foo", "baz"))
+
+print()
+
+# === 数学函数 ===
+print("=== Math Functions ===")
+print(abs(-5))
+print(min(3, 7, 1, 9))
+print(max(3, 7, 1, 9))
+print(sqrt(16))
+print(floor(3.7))
+print(ceil(3.2))
+print(round(3.5))
+print(pow(2, 10))
+print(sin(0))
+print(cos(0))
+
+print()
+
+# === 数组函数 ===
+print("=== Array Functions ===")
+let arr = [3, 1, 4, 1, 5]
+print(reverse(arr))
+sort(arr)
+print(arr)
+print(slice(arr, 1, 4))
+
+print()
+
+# === 文件 IO ===
+print("=== File IO ===")
+write_file("_test.txt", "Hello FPLP!")
+print(read_file("_test.txt"))
+append_file("_test.txt", "\nAppended line")
+print(read_file("_test.txt"))

@@ -1,0 +1,20 @@
+# 猜数字游戏 - 演示交互功能
+print("🎯 猜数字游戏 (1-100)")
+
+let target = rand(1, 100)
+let guess = 0
+let tries = 0
+
+loop guess != target {
+    let raw = input("猜一个数字: ")
+    guess = int(raw)
+    tries = tries + 1
+
+    if guess < target {
+        print("太小了！")
+    } else if guess > target {
+        print("太大了！")
+    } else {
+        print("🎉 猜中了！用了", tries, "次")
+    }
+}

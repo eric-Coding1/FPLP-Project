@@ -1,0 +1,63 @@
+# ===== 变量与基本运算 =====
+let a = 10
+let b = 20
+print("a + b =", a + b)       # 30
+print("b - a =", b - a)       # 10
+print("a * b =", a * b)       # 200
+print("b / a =", b / a)       # 2
+
+# ===== 条件判断 =====
+let score = 85
+if score >= 90 {
+    print("A")
+} else if score >= 80 {
+    print("B")
+} else {
+    print("C")
+}
+
+# ===== 循环 =====
+print("--- for-each loop ---")
+let sum = 0
+loop i in range(5) {
+    sum = sum + i
+}
+print("sum 0..4 =", sum)
+
+print("--- while loop ---")
+let n = 3
+loop n > 0 {
+    print("countdown:", n)
+    n = n - 1
+}
+
+# ===== 函数 =====
+fn fib(n) {
+    if n <= 1 {
+        return n
+    }
+    return fib(n - 1) + fib(n - 2)
+}
+print("fib(10) =", fib(10))
+
+# ===== 闭包 =====
+fn make_adder(x) {
+    return fn(y) { x + y }
+}
+let add5 = make_adder(5)
+print("add5(3) =", add5(3))
+
+# ===== 数据结构 =====
+let arr = [1, 2, 3, 4, 5]
+print("arr[2] =", arr[2])
+push(arr, 6)
+print("after push:", arr)
+
+let map = {"name": "FPLP", "version": 1.0}
+print("map keys:", keys(map))
+print("map values:", values(map))
+
+# ===== 字符串 =====
+let s = "Hello" + ", " + "World"
+print(s)
+print("len:", len(s))

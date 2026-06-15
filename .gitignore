@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.env
+.venv
+venv/
+generated-images/
+_output_*.png
+_test.txt

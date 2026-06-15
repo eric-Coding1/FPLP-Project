@@ -1,0 +1,37 @@
+# 图形编辑演示
+print("=== 创建图像 ===")
+let img = create_image(400, 300, "#1a1a2e")
+print("尺寸:", image_width(img), "x", image_height(img))
+
+print("=== 绘制图形 ===")
+draw_rect(img, 50, 40, 120, 80, "#e94560")
+draw_circle(img, 300, 100, 50, "#0f3460", true)
+draw_circle(img, 300, 100, 50, "#f5a623", false)     # 描边
+
+print("=== 绘制文字 ===")
+draw_text(img, 60, 150, "Hello FPLP!", 32, "white")
+
+print("=== 滤镜应用 ===")
+let blurred = blur(img, 8)
+let gray = grayscale(img)
+
+print("=== 旋转变换 ===")
+let rotated = rotate(img, 45)
+
+print("=== 裁剪 ===")
+let cropped = crop(img, 50, 40, 120, 80)
+
+print("=== 拼接合成 ===")
+let canvas = create_image(600, 300, "#111")
+paste(canvas, img, 0, 0)
+paste(canvas, blurred, 400, 0)
+paste(canvas, gray, 200, 0)
+
+print("=== 保存图像 ===")
+save_image(img, "_output_original.png")
+save_image(blurred, "_output_blurred.png")
+save_image(gray, "_output_gray.png")
+save_image(rotated, "_output_rotated.png")
+save_image(cropped, "_output_cropped.png")
+save_image(canvas, "_output_canvas.png")
+print("图片已保存 ✅")

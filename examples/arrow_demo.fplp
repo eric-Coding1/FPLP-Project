@@ -1,0 +1,31 @@
+# 简化函数语法演示
+
+# === 箭头函数：命名函数简写 ===
+fn add(x, y) => x + y
+print("add(3, 4) =", add(3, 4))
+
+fn square(n) => n * n
+print("square(5) =", square(5))
+
+# === 箭头函数：匿名函数（赋值给变量） ===
+let mul = fn(a, b) => a * b
+print("mul(6, 7) =", mul(6, 7))
+
+# === 传统大括号写法仍然支持 ===
+fn old_style(x) {
+    let y = x * 2
+    return y + 1
+}
+print("old_style(5) =", old_style(5))
+
+# === 高阶函数 + 箭头 ===
+fn apply_twice(f, x) => f(f(x))
+let inc = fn(n) => n + 1
+print("apply_twice(inc, 5) =", apply_twice(inc, 5))
+
+# === 箭头 + 闭包 ===
+fn make_counter(start) => fn() => start = start + 1
+let c = make_counter(10)
+print("c() =", c())  # 11
+print("c() =", c())  # 12
+print("c() =", c())  # 13
