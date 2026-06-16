@@ -8,6 +8,8 @@ import time as _time
 import datetime
 import socket as _socket
 import platform as _platform
+import subprocess as _subprocess
+import shutil as _shutil
 
 from .builtins import BuiltinFunction, FPLPError
 
@@ -562,6 +564,430 @@ LIB_RE = {
     "escape": BuiltinFunction("re.escape", _re_escape, min_args=1, max_args=1),
 }
 
+# ======================================================================
+# path — 路径操作
+# ======================================================================
+
+def _path_join(args):
+    return _os.path.join(*[str(a) for a in args])
+
+def _path_basename(args):
+    return _os.path.basename(str(args[0]))
+
+def _path_dirname(args):
+    return _os.path.dirname(str(args[0]))
+
+def _path_splitext(args):
+    root, ext = _os.path.splitext(str(args[0]))
+    return {"root": root, "ext": ext}
+
+def _path_abspath(args):
+    return _os.path.abspath(str(args[0]))
+
+def _path_expanduser(args):
+    return _os.path.expanduser(str(args[0]))
+
+def _path_relpath(args):
+    path = str(args[0])
+    start = str(args[1]) if len(args) > 1 else _os.getcwd()
+    return _os.path.relpath(path, start)
+
+def _path_split(args):
+    parts = []
+    p = str(args[0])
+    while p:
+        head, tail = _os.path.split(p)
+        if not tail:
+            if head:
+                parts.insert(0, head)
+            break
+        parts.insert(0, tail)
+        p = head
+    return parts
+
+def _path_size(args):
+    return _os.path.getsize(str(args[0]))
+
+def _path_mtime(args):
+    return _os.path.getmtime(str(args[0]))
+
+def _path_ismount(args):
+    return _os.path.ismount(str(args[0]))
+
+LIB_PATH = {
+    "join": BuiltinFunction("path.join", _path_join, min_args=1),
+    "basename": BuiltinFunction("path.basename", _path_basename, min_args=1, max_args=1),
+    "dirname": BuiltinFunction("path.dirname", _path_dirname, min_args=1, max_args=1),
+    "splitext": BuiltinFunction("path.splitext", _path_splitext, min_args=1, max_args=1),
+    "abspath": BuiltinFunction("path.abspath", _path_abspath, min_args=1, max_args=1),
+    "expanduser": BuiltinFunction("path.expanduser", _path_expanduser, min_args=1, max_args=1),
+    "relpath": BuiltinFunction("path.relpath", _path_relpath, min_args=1, max_args=2),
+    "split": BuiltinFunction("path.split", _path_split, min_args=1, max_args=1),
+    "size": BuiltinFunction("path.size", _path_size, min_args=1, max_args=1),
+    "mtime": BuiltinFunction("path.mtime", _path_mtime, min_args=1, max_args=1),
+    "ismount": BuiltinFunction("path.ismount", _path_ismount, min_args=1, max_args=1),
+}
+
+
+# ======================================================================
+# os 增强 — 文件系统 + 系统信息
+# ======================================================================
+
+def _os_copy(args):
+    """Copy file src → dst."""
+    src = str(args[0]); dst = str(args[1])
+    _shutil.copy2(src, dst)
+    return dst
+
+def _os_copytree(args):
+    """Copy directory recursively."""
+    src = str(args[0]); dst = str(args[1])
+    if _os.path.exists(dst):
+        raise FPLPError(f"target exists: {dst}")
+    _shutil.copytree(src, dst)
+    return dst
+
+def _os_move(args):
+    """Move/rename file or directory."""
+    src = str(args[0]); dst = str(args[1])
+    _shutil.move(src, dst)
+    return dst
+
+def _os_glob(args):
+    """Glob pattern matching."""
+    import glob as _glob
+    pattern = str(args[0])
+    return _glob.glob(pattern, recursive=True)
+
+def _os_walk(args):
+    """Walk directory tree, return list of {dir, files, dirs}."""
+    path = str(args[0])
+    result = []
+    for root, dirs, files in _os.walk(path):
+        result.append({"dir": root, "dirs": dirs, "files": files})
+    return result
+
+def _os_which(args):
+    """Find executable in PATH."""
+    exe = _shutil.which(str(args[0]))
+    return exe or None
+
+def _os_tmpdir(args):
+    import tempfile
+    return tempfile.gettempdir()
+
+def _os_tmpfile(args):
+    import tempfile
+    suffix = str(args[0]) if args else ".tmp"
+    prefix = str(args[1]) if len(args) > 1 else "fplp_"
+    fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+    _os.close(fd)
+    return path
+
+def _os_disk_usage(args):
+    """Disk usage stats for a path."""
+    path = str(args[0]) if args else _os.getcwd()
+    total, used, free = _shutil.disk_usage(path)
+    return {"total": total, "used": used, "free": free}
+
+def _os_symlink(args):
+    src = str(args[0]); dst = str(args[1])
+    _os.symlink(src, dst)
+    return dst
+
+def _os_chmod(args):
+    path = str(args[0])
+    mode = int(args[1]) if isinstance(args[1], (int, float)) else int(args[1])
+    _os.chmod(path, mode)
+    return True
+
+def _os_stat(args):
+    """File/directory stat info."""
+    st = _os.stat(str(args[0]))
+    return {
+        "size": st.st_size,
+        "mtime": st.st_mtime,
+        "ctime": st.st_ctime,
+        "atime": st.st_atime,
+        "mode": st.st_mode,
+        "uid": st.st_uid,
+        "gid": st.st_gid,
+        "is_dir": _os.path.isdir(str(args[0])),
+        "is_file": _os.path.isfile(str(args[0])),
+    }
+
+def _os_env(args):
+    """Get all environment variables as a dict."""
+    return dict(_os.environ)
+
+def _os_term_size(args):
+    """Get terminal size as {columns, lines}."""
+    try:
+        size = _os.get_terminal_size()
+        return {"columns": size.columns, "lines": size.lines}
+    except Exception:
+        return {"columns": 80, "lines": 24}
+
+# Extend LIB_OS with new functions
+LIB_OS.update({
+    "copy": BuiltinFunction("os.copy", _os_copy, min_args=2, max_args=2),
+    "copytree": BuiltinFunction("os.copytree", _os_copytree, min_args=2, max_args=2),
+    "move": BuiltinFunction("os.move", _os_move, min_args=2, max_args=2),
+    "glob": BuiltinFunction("os.glob", _os_glob, min_args=1, max_args=1),
+    "walk": BuiltinFunction("os.walk", _os_walk, min_args=1, max_args=1),
+    "which": BuiltinFunction("os.which", _os_which, min_args=1, max_args=1),
+    "tmpdir": BuiltinFunction("os.tmpdir", _os_tmpdir, min_args=0, max_args=0),
+    "tmpfile": BuiltinFunction("os.tmpfile", _os_tmpfile, min_args=0, max_args=2),
+    "disk_usage": BuiltinFunction("os.disk_usage", _os_disk_usage, min_args=0, max_args=1),
+    "symlink": BuiltinFunction("os.symlink", _os_symlink, min_args=2, max_args=2),
+    "chmod": BuiltinFunction("os.chmod", _os_chmod, min_args=2, max_args=2),
+    "stat": BuiltinFunction("os.stat", _os_stat, min_args=1, max_args=1),
+    "env": BuiltinFunction("os.env", _os_env, min_args=0, max_args=0),
+    "term_size": BuiltinFunction("os.term_size", _os_term_size, min_args=0, max_args=0),
+})
+
+
+# ======================================================================
+# sys 增强 — 运行时 + 内省
+# ======================================================================
+
+def _sys_python_version(args):
+    return _sys.version
+
+def _sys_modules_list(args):
+    return list(_sys.modules.keys())
+
+def _sys_argv_raw(args):
+    return _sys.argv
+
+def _sys_exit_code(args):
+    code = int(args[0]) if args else 0
+    _sys.exit(code)
+
+def _sys_refcount(args):
+    import sys as _sys2
+    return _sys2.getrefcount(args[0]) - 1  # subtract ref from getrefcount itself
+
+# Extend LIB_SYS
+LIB_SYS.update({
+    "python_version": BuiltinFunction("sys.python_version", _sys_python_version, min_args=0, max_args=0),
+    "modules_list": BuiltinFunction("sys.modules_list", _sys_modules_list, min_args=0, max_args=0),
+    "argv_raw": BuiltinFunction("sys.argv_raw", _sys_argv_raw, min_args=0, max_args=0),
+    "exit_code": BuiltinFunction("sys.exit_code", _sys_exit_code, min_args=0, max_args=1),
+})
+
+
+# ======================================================================
+# proc — 进程管理
+# ======================================================================
+
+
+def _proc_spawn(args):
+    """Spawn a process. Returns {pid, stdin, stdout, stderr}."""
+    cmd = str(args[0])
+    shell = bool(args[1]) if len(args) > 1 else False
+    try:
+        p = _subprocess.Popen(
+            cmd if shell else cmd.split(),
+            shell=shell,
+            stdin=_subprocess.PIPE,
+            stdout=_subprocess.PIPE,
+            stderr=_subprocess.PIPE,
+            text=True
+        )
+        return {"pid": p.pid, "process": p}
+    except Exception as e:
+        raise FPLPError(f"spawn failed: {e}")
+
+def _proc_run(args):
+    """Run a command and wait for completion. Returns {code, stdout, stderr}."""
+    cmd = str(args[0])
+    timeout_val = float(args[1]) if len(args) > 1 else 30
+    try:
+        r = _subprocess.run(
+            cmd, shell=True, capture_output=True, text=True,
+            timeout=timeout_val
+        )
+        return {"code": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
+    except _subprocess.TimeoutExpired:
+        return {"code": -1, "stdout": "", "stderr": "timeout"}
+    except Exception as e:
+        return {"code": -2, "stdout": "", "stderr": str(e)}
+
+def _proc_kill(args):
+    """Kill a process by PID."""
+    pid = int(args[0])
+    sig = int(args[1]) if len(args) > 1 else _signal.SIGTERM
+    try:
+        _os.kill(pid, sig)
+        return True
+    except ProcessLookupError:
+        return False
+
+def _proc_pid(args):
+    """Current process ID."""
+    return _os.getpid()
+
+def _proc_ppid(args):
+    """Parent process ID."""
+    return _os.getppid()
+
+def _proc_cwd(args):
+    """Current working directory."""
+    return _os.getcwd()
+
+def _proc_chdir(args):
+    """Change current working directory."""
+    _os.chdir(str(args[0]))
+    return True
+
+def _proc_environ(args):
+    """Get or set environment variables."""
+    if not args:
+        return dict(_os.environ)
+    key = str(args[0])
+    if len(args) > 1:
+        _os.environ[key] = str(args[1])
+        return True
+    return _os.environ.get(key, None)
+
+LIB_PROC = {
+    "spawn": BuiltinFunction("proc.spawn", _proc_spawn, min_args=1, max_args=2),
+    "run": BuiltinFunction("proc.run", _proc_run, min_args=1, max_args=2),
+    "kill": BuiltinFunction("proc.kill", _proc_kill, min_args=1, max_args=2),
+    "pid": BuiltinFunction("proc.pid", _proc_pid, min_args=0, max_args=0),
+    "ppid": BuiltinFunction("proc.ppid", _proc_ppid, min_args=0, max_args=0),
+    "cwd": BuiltinFunction("proc.cwd", _proc_cwd, min_args=0, max_args=0),
+    "chdir": BuiltinFunction("proc.chdir", _proc_chdir, min_args=1, max_args=1),
+    "environ": BuiltinFunction("proc.environ", _proc_environ, min_args=0, max_args=2),
+}
+
+
+# ======================================================================
+# net — 网络工具
+# ======================================================================
+
+def _net_hostname(args):
+    return _socket.gethostname()
+
+def _net_ip(args):
+    """Get local IP address."""
+    hostname = _socket.gethostname()
+    try:
+        return _socket.gethostbyname(hostname)
+    except Exception:
+        # Fallback method
+        s = _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            return ip
+        except Exception:
+            return "127.0.0.1"
+        finally:
+            s.close()
+
+def _net_lookup(args):
+    """DNS lookup: hostname → IP."""
+    try:
+        return _socket.gethostbyname(str(args[0]))
+    except _socket.gaierror:
+        return None
+
+def _net_ping(args):
+    """Ping a host (via system ping command). Returns {code, time_ms}."""
+    host = str(args[0])
+    count = int(args[1]) if len(args) > 1 else 1
+    try:
+        r = _subprocess.run(
+            ["ping", "-n", str(count), host] if _sys.platform == "win32"
+            else ["ping", "-c", str(count), host],
+            capture_output=True, text=True, timeout=10
+        )
+        # Try to parse time from output
+        import re as _re2
+        times = _re2.findall(r"time[=<](\d+\.?\d*)", r.stdout.lower())
+        return {
+            "code": r.returncode,
+            "time_ms": float(times[0]) if times else None,
+            "output": r.stdout
+        }
+    except Exception as e:
+        return {"code": -1, "time_ms": None, "output": str(e)}
+
+LIB_NET = {
+    "hostname": BuiltinFunction("net.hostname", _net_hostname, min_args=0, max_args=0),
+    "ip": BuiltinFunction("net.ip", _net_ip, min_args=0, max_args=0),
+    "lookup": BuiltinFunction("net.lookup", _net_lookup, min_args=1, max_args=1),
+    "ping": BuiltinFunction("net.ping", _net_ping, min_args=1, max_args=2),
+}
+
+
+# ======================================================================
+# io — 流式文件操作
+# ======================================================================
+
+def _io_read_lines(args):
+    """Read file as list of lines."""
+    path = str(args[0])
+    with open(path, "r", encoding="utf-8") as f:
+        return [line.rstrip("\n\r") for line in f]
+
+def _io_write_lines(args):
+    """Write list of lines to file."""
+    path = str(args[0])
+    lines = args[1]
+    with open(path, "w", encoding="utf-8") as f:
+        for line in lines:
+            f.write(str(line) + "\n")
+    return True
+
+def _io_append_lines(args):
+    """Append list of lines to file."""
+    path = str(args[0])
+    lines = args[1]
+    with open(path, "a", encoding="utf-8") as f:
+        for line in lines:
+            f.write(str(line) + "\n")
+    return True
+
+def _io_read_bytes(args):
+    """Read file as bytes, return list of integers."""
+    path = str(args[0])
+    with open(path, "rb") as f:
+        data = f.read()
+    return list(data)
+
+def _io_write_bytes(args):
+    """Write list of integers as bytes to file."""
+    path = str(args[0])
+    data = bytes(int(b) for b in args[1])
+    with open(path, "wb") as f:
+        f.write(data)
+    return True
+
+def _io_pipe(args):
+    """Pipe data through a shell command. Returns stdout string."""
+    cmd = str(args[0])
+    input_data = str(args[1]) if len(args) > 1 else ""
+    try:
+        r = _subprocess.run(
+            cmd, shell=True, input=input_data,
+            capture_output=True, text=True, timeout=30
+        )
+        return {"code": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
+    except _subprocess.TimeoutExpired:
+        return {"code": -1, "stdout": "", "stderr": "timeout"}
+
+LIB_IO = {
+    "read_lines": BuiltinFunction("io.read_lines", _io_read_lines, min_args=1, max_args=1),
+    "write_lines": BuiltinFunction("io.write_lines", _io_write_lines, min_args=2, max_args=2),
+    "append_lines": BuiltinFunction("io.append_lines", _io_append_lines, min_args=2, max_args=2),
+    "read_bytes": BuiltinFunction("io.read_bytes", _io_read_bytes, min_args=1, max_args=1),
+    "write_bytes": BuiltinFunction("io.write_bytes", _io_write_bytes, min_args=2, max_args=2),
+    "pipe": BuiltinFunction("io.pipe", _io_pipe, min_args=1, max_args=2),
+}
+
 
 # ---------------------------------------------------------------------------
 # Register all libraries
@@ -579,4 +1005,8 @@ LIBS = {
     "hashlib": LIB_HASHLIB,
     "csv": LIB_CSV,
     "re": LIB_RE,
+    "path": LIB_PATH,
+    "proc": LIB_PROC,
+    "net": LIB_NET,
+    "io": LIB_IO,
 }
