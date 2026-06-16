@@ -27,6 +27,16 @@ class ReturnValue:
         self.value = value
 
 
+class BreakSignal:
+    """Signals a `break` from a loop."""
+    pass
+
+
+class ContinueSignal:
+    """Signals a `continue` from a loop."""
+    pass
+
+
 class BuiltinFunction:
     def __init__(self, name, fn, min_args=0, max_args=None):
         self.name = name

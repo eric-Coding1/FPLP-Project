@@ -21,6 +21,8 @@ LOOP = "LOOP"
 FOR = "FOR"
 IN = "IN"
 FN = "FN"
+BREAK = "BREAK"
+CONTINUE = "CONTINUE"
 RETURN = "RETURN"
 AND = "AND"
 OR = "OR"
@@ -69,6 +71,8 @@ KEYWORDS = {
     "in": IN,
     "fn": FN,
     "return": RETURN,
+    "break": BREAK,
+    "continue": CONTINUE,
     "and": AND,
     "or": OR,
     "not": NOT,

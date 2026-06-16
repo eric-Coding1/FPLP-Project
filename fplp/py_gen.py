@@ -190,6 +190,12 @@ class PyGen:
             else:
                 self._emit("return None")
 
+        elif t is BreakStatement:
+            self._emit("break")
+
+        elif t is ContinueStatement:
+            self._emit("continue")
+
         elif t is BlockStatement:
             for s in node.statements:
                 self._emit_stmt(s)

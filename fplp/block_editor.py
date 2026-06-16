@@ -77,6 +77,8 @@ PALETTE_BLOCKS = [
         BlockNode("fn arrow",      'fn __name__(__params__) => __expr__', "Functions"),
         BlockNode("return",        'return __value__', "Functions"),
         BlockNode("call fn",       '__name__(__args__)', "Functions"),
+        BlockNode("break",         'break', "Functions"),
+        BlockNode("continue",      'continue', "Functions"),
     ]),
     ("Operators", [
         BlockNode("+",             '__a__ + __b__', "Operators", "expression"),

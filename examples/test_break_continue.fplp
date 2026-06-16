@@ -1,0 +1,40 @@
+fn test1() {
+    print("=== break ===")
+    let i = 0
+    loop true {
+        if i >= 3 { break }
+        print(i)
+        i = i + 1
+    }
+}
+
+fn test2() {
+    print("=== continue ===")
+    let j = 0
+    loop j < 6 {
+        j = j + 1
+        if j == 3 { continue }
+        print(j)
+    }
+}
+
+fn test_for_break() {
+    print("=== for + break ===")
+    for k in [10, 20, 30, 40, 50] {
+        if k == 30 { break }
+        print(k)
+    }
+}
+
+fn test_for_continue() {
+    print("=== for + continue ===")
+    for k in [1, 2, 3, 4, 5, 6] {
+        if k % 2 == 0 { continue }
+        print(k)
+    }
+}
+
+test1()
+test2()
+test_for_break()
+test_for_continue()

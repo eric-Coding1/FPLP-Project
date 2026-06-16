@@ -57,6 +57,24 @@ class ReturnStatement(Statement):
         return "return"
 
 
+class BreakStatement(Statement):
+    """break — exit the innermost loop."""
+    def __str__(self):
+        return "break"
+
+    def token_literal(self):
+        return "break"
+
+
+class ContinueStatement(Statement):
+    """continue — skip to the next iteration of the innermost loop."""
+    def __str__(self):
+        return "continue"
+
+    def token_literal(self):
+        return "continue"
+
+
 class ExpressionStatement(Statement):
     """A standalone expression used as a statement."""
     def __init__(self, expression):

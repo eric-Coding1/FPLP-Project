@@ -15,6 +15,10 @@ class Compiler:
     def __init__(self):
         self._builtin_names = set(BUILTINS.keys())
         self._temp_counter = 0
+        # Stack of (break_patch_indices, continue_target) for enclosing loops.
+        # break_patch_indices: list of instruction indices that JMP to the loop end
+        # continue_target: instruction index to JMP to for `continue`
+        self._loop_stack = []
 
     def _temp_name(self):
         """Generate a unique internal variable name."""
@@ -54,6 +58,23 @@ class Compiler:
             else:
                 code.add_instr(PUSH_NIL)
             code.add_instr(RET)
+
+        elif t is BreakStatement:
+            if not self._loop_stack:
+                raise CompilerError("'break' outside of loop")
+            self._loop_stack[-1][0].append(code.add_instr(JMP, 0))
+
+        elif t is ContinueStatement:
+            if not self._loop_stack:
+                raise CompilerError("'continue' outside of loop")
+            frame = self._loop_stack[-1]
+            if frame[1] is None:
+                # For-loop: continue jumps to the increment block (start of it,
+                # which is right after the body) — patch later via backpatch list
+                frame[2].append(code.add_instr(JMP, 0))
+            else:
+                # While-loop: continue jumps to condition check
+                code.add_instr(JMP, frame[1])
 
         elif t is BlockStatement:
             for s in node.statements:
@@ -205,22 +226,18 @@ class Compiler:
         if node.is_while:
             # loop condition { body }
             start = len(code.instrs)
+            # (breaks, while_target, continues) — continues unused for while
+            self._loop_stack.append(([], start, []))
             self._emit_expr(code, node.iterable)
             jif_idx = code.add_instr(JIF, 0)
             self._emit_stmt(code, node.body)
             code.add_instr(JMP, start)
             code.patch_jump(jif_idx, len(code.instrs))
+            breaks, _, _ = self._loop_stack.pop()
+            for b in breaks:
+                code.patch_jump(b, len(code.instrs))
         else:
             # for x in iterable { body }
-            # Desugar:
-            #   _it = iterable
-            #   _i = 0
-            #   _l = len(_it)
-            #   loop _i < _l {
-            #       x = _it[_i]
-            #       body
-            #       _i = _i + 1
-            #   }
             it_name = self._temp_name()
             i_name = self._temp_name()
             ln_name = self._temp_name()
@@ -237,6 +254,10 @@ class Compiler:
 
             # Loop header
             loop_start = len(code.instrs)
+            # (breaks, None=sentinel for for-loop, continues) — continues jump
+            # to the increment block (recorded at the moment we finish body).
+            self._loop_stack.append(([], None, []))
+
             code.add_instr(LOAD, code.add_name(i_name))
             code.add_instr(LOAD, code.add_name(ln_name))
             code.add_instr(LT)
@@ -250,7 +271,10 @@ class Compiler:
 
             self._emit_stmt(code, node.body)
 
-            # i = i + 1
+            # Record position where `continue` should jump to (start of increment)
+            increment_start = len(code.instrs)
+
+            # Increment: i = i + 1
             code.add_instr(LOAD, code.add_name(i_name))
             code.add_instr(PUSH_INT, code.add_const(1))
             code.add_instr(ADD)
@@ -260,6 +284,12 @@ class Compiler:
 
             code.add_instr(JMP, loop_start)
             code.patch_jump(jif_idx, len(code.instrs))
+            # Patch all break jumps to land here (loop exit)
+            breaks, _, continues = self._loop_stack.pop()
+            for b in breaks:
+                code.patch_jump(b, len(code.instrs))
+            for c in continues:
+                code.patch_jump(c, increment_start)
 
     # ----- If statement (no result needed) -----
 

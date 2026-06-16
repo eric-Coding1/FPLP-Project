@@ -1,0 +1,230 @@
+# FPLP Mini OS — 命令行操作系统
+# 运行：python main.py examples/fplp_os.fplp
+
+print("█▓▒░ FPLP-OS v1.0 ░▒▓█")
+print()
+print("正在启动内核...")
+sleep(0.3)
+print("  加载文件系统...")
+sleep(0.2)
+print("  初始化内存管理...")
+sleep(0.2)
+print("  启动服务管理器...")
+sleep(0.2)
+print("  加载用户界面...")
+sleep(0.3)
+print()
+print(" ✔ 启动完成！")
+print(" 输入 help 查看命令，exit 关机")
+print()
+
+let _cwd = os.cwd()
+let _running = true
+
+# ====================================================================
+# 应用
+# ====================================================================
+
+fn app_help() {
+    print("═══════════════════════════════")
+    print("     FPLP-OS 命令手册")
+    print("═══════════════════════════════")
+    print("  help       显示帮助")
+    print("  clear      清屏")
+    print("  exit       关机")
+    print("  ls [路径]  列出目录")
+    print("  cd <路径>  切换目录")
+    print("  pwd        当前路径")
+    print("  cat <文件> 查看文件")
+    print("  mkdir <目录> 创建目录")
+    print("  rm <文件>  删除文件")
+    print("  calc       计算器")
+    print("  monitor    系统监控")
+    print("  date       日期时间")
+    print("  echo       输出文本")
+    print("  disk       磁盘使用")
+    print("  whoami     当前用户")
+    print("  version    版本信息")
+}
+
+fn cmd_ls(path) {
+    if path == nil { path = "." }
+    if not os.isdir(path) { print("ls: " + path + ": 目录不存在")
+    return }
+    let items = os.listdir(path)
+    sort(items)
+    for name in items {
+        let full = path.join(path, name)
+        if os.isdir(full) { print("  [DIR]  " + name + "/") }
+        else {
+            let info = os.stat(full)
+            print("  [FILE] " + name + "  (" + str(info["size"]) + " B)")
+        }
+    }
+    print("共 " + str(len(items)) + " 项")
+}
+
+fn cmd_cd(target) {
+    if target == nil { print("cd: 缺少路径")
+    return }
+    let new_path = path.abspath(target)
+    if os.isdir(new_path) {
+        os.chdir(new_path)
+        _cwd = os.cwd()
+    } else {
+        print("cd: " + target + ": 目录不存在")
+    }
+}
+
+fn cmd_cat(filepath) {
+    if filepath == nil { print("cat: 缺少文件")
+    return }
+    if not os.exists(filepath) { print("cat: " + filepath + ": 文件不存在")
+    return }
+    if os.isdir(filepath) { print("cat: " + filepath + ": 是目录")
+    return }
+    let content = read_file(filepath)
+    if content != nil { print(content) }
+}
+
+fn cmd_calc() {
+    print("━━━ 计算器 ━━━")
+    print("  格式: <数字> <运算符> <数字>")
+    print("  输入空行退出")
+    loop true {
+        let line = input("calc> ")
+        if line == nil { break }
+        line = trim(line)
+        if line == "" { break }
+        if line == "exit" { break }
+        let parts = split(line, " ")
+        if len(parts) == 3 {
+            let a = float(parts[0])
+            let op = parts[1]
+            let b = float(parts[2])
+            if op == "+" { print("  = " + str(a + b)) }
+            else if op == "-" { print("  = " + str(a - b)) }
+            else if op == "*" { print("  = " + str(a * b)) }
+            else if op == "/" { print("  = " + str(a / b)) }
+            else if op == "^" { print("  = " + str(pow(a, b))) }
+            else if op == "%" { print("  = " + str(a % b)) }
+            else { print("  不支持的运算符: " + op) }
+        } else {
+            print("  格式: <数字> <运算符> <数字>")
+        }
+    }
+}
+
+fn cmd_monitor() {
+    print("━━━ 系统监控 ━━━")
+    print("主机: " + os.hostname())
+    print("用户: " + os.username())
+    print("系统: " + os.platform())
+    print("CPU: " + str(os.cpu_count()) + " 核心")
+    print("PID: " + str(os.pid()))
+    print("Python: " + sys.python_version())
+    print("FPLP: " + sys.version())
+
+    let d = os.disk_usage(_cwd)
+    let total_gb = round(d["total"] / 1073741824, 1)
+    let used_gb = round(d["used"] / 1073741824, 1)
+    let free_gb = round(d["free"] / 1073741824, 1)
+    let pct = round(d["used"] / d["total"] * 100, 0)
+    let bar = ""
+    let i = 0
+    loop i < 20 {
+        if i < round(pct / 5, 0) { bar = bar + "█" }
+        else { bar = bar + "░" }
+        i = i + 1
+    }
+    print("磁盘: [" + bar + "] " + str(pct) + "%")
+    print("      总 " + str(total_gb) + "G  已用 " + str(used_gb) + "G  空闲 " + str(free_gb) + "G")
+}
+
+fn cmd_date() {
+    let t = time.localtime()
+    print(str(t["year"]) + "-" + str(t["month"]) + "-" + str(t["day"])
+          + " " + str(t["hour"]) + ":" + str(t["minute"]) + ":" + str(t["second"]))
+}
+
+fn cmd_disk() {
+    let d = os.disk_usage(_cwd)
+    print("磁盘使用:")
+    print("  总容量: " + str(round(d["total"]/1073741824,1)) + " GB")
+    print("  已使用: " + str(round(d["used"]/1073741824,1)) + " GB")
+    print("  可用: " + str(round(d["free"]/1073741824,1)) + " GB")
+}
+
+fn cmd_mkdir(name) {
+    if name == nil { print("mkdir: 缺少目录")
+    return }
+    os.mkdir(name)
+    print("已创建: " + name)
+}
+
+fn cmd_rm(name) {
+    if name == nil { print("rm: 缺少文件")
+    return }
+    if not os.exists(name) { print("rm: " + name + ": 文件不存在")
+    return }
+    os.remove(name)
+    print("已删除: " + name)
+}
+
+fn cmd_clear() {
+    let i = 0
+    loop i < 30 { print("")
+    i = i + 1 }
+}
+
+# ====================================================================
+# 主循环
+# ====================================================================
+
+loop _running {
+    let cwd = os.cwd()
+    let folder = path.basename(cwd)
+    let prompt = "[" + os.username() + "@" + os.hostname() + " " + folder + "]$ "
+    let line = input(prompt)
+    if line == nil { break }
+    line = trim(line)
+    if line == "" { continue }
+
+    let tokens = split(line, " ")
+    let cmd = tokens[0]
+    let arg = nil
+    if len(tokens) > 1 { arg = join(slice(tokens, 1, len(tokens)), " ") }
+
+    # 跳过空输入（不需要 continue，直接用 if 包装）
+    if line != "" {
+        if cmd == "help" { app_help() }
+        else if cmd == "clear" { cmd_clear() }
+        else if cmd == "exit" or cmd == "shutdown" { _running = false }
+        else if cmd == "ls" { cmd_ls(arg) }
+        else if cmd == "cd" { cmd_cd(arg) }
+        else if cmd == "pwd" { print(cwd) }
+        else if cmd == "cat" { cmd_cat(arg) }
+        else if cmd == "calc" { cmd_calc() }
+        else if cmd == "monitor" or cmd == "info" { cmd_monitor() }
+        else if cmd == "date" { cmd_date() }
+        else if cmd == "disk" { cmd_disk() }
+        else if cmd == "mkdir" { cmd_mkdir(arg) }
+        else if cmd == "rm" { cmd_rm(arg) }
+        else if cmd == "echo" { print(arg) }
+        else if cmd == "whoami" { print(os.username()) }
+        else if cmd == "version" { print("FPLP-OS v1.0 | " + sys.version()) }
+        else { print("未知命令: " + cmd + "  输入 help 查看命令") }
+
+        print()
+    }
+}
+
+print()
+print("▓▒░ FPLP-OS 正在关机... ░▒▓")
+sleep(0.3)
+print("  √ 保存用户数据")
+sleep(0.2)
+print("  √ 关闭服务")
+sleep(0.2)
+print("  √ 系统已停止")
+print("Bye! 👋")

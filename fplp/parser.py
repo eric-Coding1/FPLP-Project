@@ -114,6 +114,10 @@ class Parser:
             return self._parse_let()
         if tok.type == RETURN:
             return self._parse_return()
+        if tok.type == BREAK:
+            return self._parse_break()
+        if tok.type == CONTINUE:
+            return self._parse_continue()
         if tok.type == LOOP:
             return self._parse_loop()
         if tok.type == FOR:
@@ -157,8 +161,19 @@ class Parser:
 
     def _parse_return(self):
         self._advance()  # consume 'return'
+        # Allow bare 'return' without a value
+        if self._current().type in (NEWLINE, RBRACE, EOF):
+            return ReturnStatement(None)
         value = self._parse_expression(_LOWEST)
         return ReturnStatement(value)
+
+    def _parse_break(self):
+        self._advance()  # consume 'break'
+        return BreakStatement()
+
+    def _parse_continue(self):
+        self._advance()  # consume 'continue'
+        return ContinueStatement()
 
     def _parse_loop(self):
         """loop identifier in expr { body }  OR  loop condition { body }"""

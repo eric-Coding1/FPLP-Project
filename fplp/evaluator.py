@@ -2,7 +2,7 @@
 
 from .ast_nodes import *
 from .environment import Environment
-from .builtins import BUILTINS, FPLPError, ReturnValue, BuiltinFunction
+from .builtins import BUILTINS, FPLPError, ReturnValue, BreakSignal, ContinueSignal, BuiltinFunction
 
 
 class Function:
@@ -51,7 +51,7 @@ def eval_block(block, env):
     result = None
     for stmt in block.statements:
         result = eval_node(stmt, new_env)
-        if isinstance(result, (ReturnValue, FPLPError)):
+        if isinstance(result, (ReturnValue, FPLPError, BreakSignal, ContinueSignal)):
             return result
     return result
 
@@ -89,6 +89,12 @@ def eval_node(node, env):
         if isinstance(value, FPLPError):
             return value
         return ReturnValue(value)
+
+    if isinstance(node, BreakStatement):
+        return BreakSignal()
+
+    if isinstance(node, ContinueStatement):
+        return ContinueSignal()
 
     if isinstance(node, BlockStatement):
         return eval_block(node, env)
@@ -322,6 +328,10 @@ def _eval_loop(node, env):
                 return result
             if isinstance(result, FPLPError):
                 return result
+            if isinstance(result, BreakSignal):
+                return None
+            if isinstance(result, ContinueSignal):
+                continue
         return result
     else:
         # For-each loop: loop var in iterable { body }
@@ -342,6 +352,10 @@ def _eval_loop(node, env):
                 return result
             if isinstance(result, FPLPError):
                 return result
+            if isinstance(result, BreakSignal):
+                return None
+            if isinstance(result, ContinueSignal):
+                continue
 
         return result
 

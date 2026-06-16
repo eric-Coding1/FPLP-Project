@@ -1,0 +1,250 @@
+# FPLP 简易命令行系统 (FPLP Mini Shell)
+# 运行：python main.py examples/shell.fplp
+# 加速：python main.py --py examples/shell.fplp
+
+# ===== 系统信息 =====
+fn show_banner() {
+    print("╔══════════════════════════════════════╗")
+    print("║    FPLP Mini Shell v1.0              ║")
+    print("║    输入 help 查看命令列表              ║")
+    print("╚══════════════════════════════════════╝")
+    print()
+}
+
+fn show_help() {
+    print("可用命令：")
+    print("  help          显示本帮助")
+    print("  ls [路径]     列出目录内容")
+    print("  cd <路径>     切换目录")
+    print("  pwd           显示当前目录")
+    print("  cat <文件>    查看文件内容")
+    print("  echo <文本>   输出文本")
+    print("  info          系统信息")
+    print("  calc <表达式> 简单计算")
+    print("  mkdir <目录>  创建目录")
+    print("  rm <文件>     删除文件")
+    print("  glob <模式>   文件匹配")
+    print("  disk          磁盘使用")
+    print("  clear         清屏")
+    print("  exit / quit   退出")
+    print()
+}
+
+# ===== 命令实现 =====
+
+fn cmd_ls(args) {
+    let path = "."
+    if len(args) > 0 { path = args[0] }
+    let items = os.listdir(path)
+    if items == nil {
+        print("错误：目录不存在")
+        return
+    }
+    for item in items {
+        let full = path.join(path, item)
+        if os.isdir(full) {
+            print("  [DIR]  " + item)
+        } else {
+            let info = os.stat(full)
+            print("  [FILE] " + item + "  (" + str(info["size"]) + " bytes)")
+        }
+    }
+    print("共 " + str(len(items)) + " 项")
+}
+
+fn cmd_pwd() {
+    print(os.cwd())
+}
+
+fn cmd_cd(args) {
+    if len(args) == 0 {
+        print("用法: cd <路径>")
+        return
+    }
+    let target = args[0]
+    if target == "~" { target = os.getenv("HOME") }
+    if target == ".." { target = ".." }
+    let new_path = path.abspath(target)
+    if os.isdir(new_path) {
+        os.chdir(new_path)
+        print("已切换至:", os.cwd())
+    } else {
+        print("错误：目录不存在：" + new_path)
+    }
+}
+
+fn cmd_cat(args) {
+    if len(args) == 0 {
+        print("用法: cat <文件>")
+        return
+    }
+    let filepath = args[0]
+    if not os.exists(filepath) {
+        print("错误：文件不存在")
+        return
+    }
+    if os.isdir(filepath) {
+        print("错误：'" + filepath + "' 是目录")
+        return
+    }
+    let content = read_file(filepath)
+    if content != nil {
+        print(content)
+    }
+}
+
+fn cmd_echo(args) {
+    let text = join(args, " ")
+    print(text)
+}
+
+fn cmd_info() {
+    print("═══ 系统信息 ═══")
+    print("主机名: " + os.hostname())
+    print("用户名: " + os.username())
+    print("平台:", os.platform())
+    print("CPU核心:", os.cpu_count())
+    print("PID:", os.pid())
+    print("当前目录:", os.cwd())
+    print("Python:", sys.python_version())
+    print("FPLP:", sys.version())
+    let d = os.disk_usage(".")
+    print("磁盘: 总 " + str(round(d["total"] / 1073741824, 1)) + " GB" +
+          " 已用 " + str(round(d["used"] / 1073741824, 1)) + " GB" +
+          " 可用 " + str(round(d["free"] / 1073741824, 1)) + " GB")
+    print("═══ ═══════════ ═══")
+}
+
+fn cmd_calc(args) {
+    if len(args) == 0 {
+        print("用法: calc <表达式>")
+        print("示例: calc 3 + 4 * 2")
+        print("示例: calc sqrt(144)")
+        return
+    }
+    let expr = join(args, " ")
+    let result = nil
+    # 解析简单算术
+    let parts = split(expr, " ")
+    if len(parts) == 1 {
+        let val = float(parts[0])
+        print("= " + str(val))
+    } elif len(parts) == 3 {
+        let a = float(parts[0])
+        let op = parts[1]
+        let b = float(parts[2])
+        if op == "+" { print("= " + str(a + b)) }
+        elif op == "-" { print("= " + str(a - b)) }
+        elif op == "*" { print("= " + str(a * b)) }
+        elif op == "/" {
+            if b == 0 { print("错误：除以零") }
+            else { print("= " + str(a / b)) }
+        }
+        elif op == "%" { print("= " + str(a % b)) }
+        elif op == "^" { print("= " + str(pow(a, b))) }
+        else { print("不支持的运算符: " + op) }
+    } else {
+        print("暂不支持复杂表达式，请用空格分隔")
+    }
+}
+
+fn cmd_mkdir(args) {
+    if len(args) == 0 {
+        print("用法: mkdir <目录>")
+        return
+    }
+    os.mkdir(args[0])
+    print("已创建: " + args[0])
+}
+
+fn cmd_rm(args) {
+    if len(args) == 0 {
+        print("用法: rm <文件>")
+        return
+    }
+    if os.exists(args[0]) {
+        os.remove(args[0])
+        print("已删除: " + args[0])
+    } else {
+        print("文件不存在: " + args[0])
+    }
+}
+
+fn cmd_glob(args) {
+    if len(args) == 0 {
+        print("用法: glob <模式>")
+        print("示例: glob *.py")
+        return
+    }
+    let files = os.glob(args[0])
+    for f in files {
+        print(f)
+    }
+    print("共 " + str(len(files)) + " 个文件")
+}
+
+fn cmd_disk() {
+    let d = os.disk_usage(".")
+    let total_gb = round(d["total"] / 1073741824, 2)
+    let used_gb = round(d["used"] / 1073741824, 2)
+    let free_gb = round(d["free"] / 1073741824, 2)
+    let pct = round(d["used"] / d["total"] * 100, 1)
+    print("磁盘使用:")
+    print("  总容量: " + str(total_gb) + " GB")
+    print("  已使用: " + str(used_gb) + " GB (" + str(pct) + "%)")
+    print("  可用空间: " + str(free_gb) + " GB")
+}
+
+fn cmd_clear() {
+    # 用换行模拟清屏
+    let i = 0
+    loop i < 40 {
+        print("")
+        i = i + 1
+    }
+}
+
+# ===== 主循环 =====
+fn main_loop() {
+    show_banner()
+
+    loop true {
+        let cwd = os.cwd()
+        let prompt = "fplsh:" + path.basename(cwd) + "$ "
+        let input = input(prompt)
+
+        if input == nil { break }
+        let line = trim(input)
+        if line == "" { continue }
+
+        if line == "exit" { break }
+        if line == "quit" { break }
+
+        let parts = split(line, " ")
+        let cmd = parts[0]
+        let args = slice(parts, 1, len(parts))
+
+        if cmd == "help" { show_help() }
+        elif cmd == "ls" { cmd_ls(args) }
+        elif cmd == "pwd" { cmd_pwd() }
+        elif cmd == "cd" { cmd_cd(args) }
+        elif cmd == "cat" { cmd_cat(args) }
+        elif cmd == "echo" { cmd_echo(args) }
+        elif cmd == "info" { cmd_info() }
+        elif cmd == "calc" { cmd_calc(args) }
+        elif cmd == "mkdir" { cmd_mkdir(args) }
+        elif cmd == "rm" { cmd_rm(args) }
+        elif cmd == "glob" { cmd_glob(args) }
+        elif cmd == "disk" { cmd_disk() }
+        elif cmd == "clear" { cmd_clear() }
+        else {
+            print("未知命令: " + cmd)
+            print("输入 help 查看可用命令")
+        }
+        print()
+    }
+
+    print("Bye!")
+}
+
+main_loop()
