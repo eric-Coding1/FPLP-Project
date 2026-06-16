@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPLP - Fast Parallel Language Plus</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #0d7377 0%, #2E4057 50%, #1a1a2e 100%);
+            padding: 80px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(13,115,119,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .hero h1 {
+            font-size: 3.5em;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 2px 20px rgba(13,115,119,0.5);
+            position: relative;
+        }
+        .hero h1 span { color: #4dd0e1; }
+        .hero p {
+            font-size: 1.2em;
+            color: #b0bec5;
+            margin: 15px 0 30px;
+            position: relative;
+        }
+        .hero .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #b0bec5;
+            margin: 0 5px;
+        }
+
+        /* Features */
+        .features {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        .feature {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 12px;
+            padding: 30px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .feature:hover {
+            transform: translateY(-3px);
+            border-color: #0d7377;
+        }
+        .feature .icon {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+        .feature h3 {
+            font-size: 1.2em;
+            color: #4dd0e1;
+            margin-bottom: 10px;
+        }
+        .feature p {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        /* Code sample */
+        .code-sample {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .code-sample pre {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #e0e0e0;
+        }
+        .code-sample .comment { color: #6a9955; }
+        .code-sample .keyword { color: #569cd6; }
+        .code-sample .string { color: #ce9178; }
+        .code-sample .number { color: #b5cea8; }
+        .code-sample .fn { color: #dcdcaa; }
+
+        /* CTA */
+        .cta {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .cta a {
+            display: inline-block;
+            background: #0d7377;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: 10px;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .cta a:hover {
+            background: #0a5c5f;
+            transform: translateY(-2px);
+        }
+        .cta .secondary {
+            background: transparent;
+            border: 2px solid #0d7377;
+            color: #4dd0e1;
+        }
+        .cta .secondary:hover {
+            background: rgba(13,115,119,0.1);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #555;
+            font-size: 0.85em;
+            border-top: 1px solid #1a1a2e;
+        }
+
+        .benchmark {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .bench-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #1a1a2e;
+        }
+        .bench-row .label { color: #999; }
+        .bench-row .value { color: #4dd0e1; font-weight: 600; }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2em; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<section class="hero">
+    <h1>FPLP <span>⚡</span></h1>
+    <p>Fast Parallel Language Plus — 轻量级自研脚本语言</p>
+    <div>
+        <span class="badge">📦 字节码 VM</span>
+        <span class="badge">🎨 图形编辑</span>
+        <span class="badge">🧩 积木模式</span>
+        <span class="badge">📦 包管理器</span>
+        <span class="badge">🚀 26x 加速</span>
+    </div>
+</section>
+
+<div class="features">
+
+    <div class="feature">
+        <div class="icon">⚡</div>
+        <h3>字节码 VM</h3>
+        <p>Pratt 解析器 → 字节码编译器 → 栈式虚拟机。29 条指令集，dispatch table 调度。</p>
+    </div>
+
+    <div class="feature">
+        <div class="icon">🎨</div>
+        <h3>图形编辑</h3>
+        <p>18 个基于 Pillow 的图像函数：绘制、变换、滤镜、拼接。一行代码出图。</p>
+    </div>
+
+    <div class="feature">
+        <div class="icon">🧩</div>
+        <h3>Scratch 积木</h3>
+        <p>10 个类别、54 个积木块的可拖拽编程界面。积木↔代码双向同步。</p>
+    </div>
+
+    <div class="feature">
+        <div class="icon">🚀</div>
+        <h3>26x 加速</h3>
+        <p>FPLP → Python 转译器，编译到 Python 字节码执行。热路径 0.09ms。</p>
+    </div>
+
+    <div class="feature">
+        <div class="icon">📦</div>
+        <h3>包管理器</h3>
+        <p>pip 风格：fplp install &lt;包名&gt;。包自动转译为 Python 原生函数。</p>
+    </div>
+
+    <div class="feature">
+        <div class="icon">🔧</div>
+        <h3>10 关键字</h3>
+        <p>极致简洁。动态类型、闭包、递归、高阶函数、10 个关键字搞定。</p>
+    </div>
+
+</div>
+
+<div class="code-sample">
+    <h2 style="text-align:center; margin-bottom:20px; color:#4dd0e1;">Hello FPLP</h2>
+    <pre><span class="comment"># FPLP 代码示例</span>
+<span class="keyword">fn</span> <span class="fn">fib</span>(n) {
+    <span class="keyword">if</span> n &lt;= 1 { <span class="keyword">return</span> n }
+    <span class="keyword">return</span> <span class="fn">fib</span>(n - 1) + <span class="fn">fib</span>(n - 2)
+}
+
+<span class="keyword">fn</span> <span class="fn">make_adder</span>(x) => <span class="keyword">fn</span>(y) => x + y
+<span class="keyword">let</span> add5 = <span class="fn">make_adder</span>(<span class="number">5</span>)
+
+<span class="fn">print</span>(<span class="string">"fib(10) ="</span>, <span class="fn">fib</span>(<span class="number">10</span>))    <span class="comment"># 55</span>
+<span class="fn">print</span>(<span class="string">"add5(3) ="</span>, <span class="fn">add5</span>(<span class="number">3</span>))    <span class="comment"># 8</span></pre>
+</div>
+
+<div class="benchmark">
+    <h2 style="text-align:center; margin-bottom:20px; color:#4dd0e1;">⚡ 性能</h2>
+    <div class="bench-row">
+        <span class="label">树遍历解释器</span>
+        <span class="value">2.6ms</span>
+    </div>
+    <div class="bench-row">
+        <span class="label">栈式 VM</span>
+        <span class="value">1.5ms 🚀</span>
+    </div>
+    <div class="bench-row">
+        <span class="label">Python 转译（热）</span>
+        <span class="value">0.1ms ⚡⚡⚡</span>
+    </div>
+</div>
+
+<div class="cta">
+    <a href="https://gitee.com/eric_Coding/fplp-project" target="_blank">⭐ 前往 Gitee</a>
+    <a href="https://gitee.com/eric_Coding/fplp-project/releases" target="_blank" class="secondary">📥 下载 v1.0</a>
+    <br>
+    <a href="https://gitee.com/eric_Coding/fplp-project/blob/master/examples/showcase.fplp" target="_blank" style="background:transparent; border:none; color:#666; font-size:0.9em;">▶ 查看完整演示</a>
+</div>
+
+<footer>
+    FPLP v1.0 — MIT License — Built with Python and ❤️
+</footer>
+
+</body>
+</html>
