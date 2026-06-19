@@ -1,0 +1,45 @@
+fn double(n) => n * 2
+print("[map]    ", map(double, [1, 2, 3, 4, 5]))
+
+fn is_odd(n) => n % 2 == 1
+print("[filter] ", filter(is_odd, [1, 2, 3, 4, 5, 6]))
+
+fn add(a, b) => a + b
+print("[reduce] ", reduce(add, [1, 2, 3, 4], 0))
+
+print("[all]    ", all([true, true, false]))
+print("[any]    ", any([false, true, false]))
+print("[sum]    ", sum([1, 2, 3, 4, 5]))
+print("[product]", product([2, 3, 4]))
+print("[flatten]", flatten([[1, 2], [3, 4], [5]]))
+print("[zip]    ", zip(["a", "b", "c"], [1, 2, 3]))
+print("[enum]   ", enumerate(["x", "y", "z"]))
+
+# Type checks
+print("[is_nil]   ", is_nil(nil))
+print("[is_bool]  ", is_bool(true))
+print("[is_int]   ", is_int(42), is_int(3.14))
+print("[is_float] ", is_float(3.14))
+print("[is_string]", is_string("hello"))
+print("[is_array] ", is_array([1, 2, 3]))
+print("[is_map]   ", is_map({"a": 1}))
+
+# Format
+print("[hex]     ", hex(255))
+print("[bin]     ", bin(10))
+print("[oct]     ", oct(64))
+print("[bool]    ", bool(1), bool(0))
+print("[sign]    ", sign(-5), sign(0), sign(8))
+print("[clamp]   ", clamp(15, 0, 10), clamp(-1, 0, 10), clamp(5, 0, 10))
+print("[lerp]    ", lerp(0, 10, 0.5))
+
+# Misc
+print("[repeat]  ", repeat("ha", 3))
+print("[chr/ord] ", chr(65), ord("A"))
+print("[copy]    ", copy([1, 2, 3]))
+print("[random]  ", random())
+
+assert(1 + 1 == 2, "math works")
+print("[assert]   passed")
+
+print("\nAll new builtins work! ✅")

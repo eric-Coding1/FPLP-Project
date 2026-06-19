@@ -342,6 +342,245 @@ def _pow(args):
     return args[0] ** args[1]
 
 
+# ===== NEW: Type Check Helpers =====
+
+def _is_nil(args):
+    return args[0] is None
+
+def _is_bool(args):
+    return isinstance(args[0], bool)
+
+def _is_int(args):
+    return isinstance(args[0], int) and not isinstance(args[0], bool)
+
+def _is_float(args):
+    return isinstance(args[0], float)
+
+def _is_string(args):
+    return isinstance(args[0], str)
+
+def _is_array(args):
+    return isinstance(args[0], list)
+
+def _is_map(args):
+    return isinstance(args[0], dict)
+
+def _is_fn(args):
+    from .vm import Closure
+    val = args[0]
+    return isinstance(val, (tuple, Closure)) or (hasattr(val, '__code__') and not hasattr(val, 'call'))
+
+
+# ===== NEW: Assertion & Debug =====
+
+def _assert(args):
+    """assert(condition) or assert(condition, message)"""
+    if not args[0]:
+        msg = str(args[1]) if len(args) > 1 else "assertion failed"
+        raise FPLPError(msg)
+    return None
+
+def _debug(args):
+    """debug(x) - print value with type info"""
+    val = args[0]
+    type_name = "nil" if val is None else type(val).__name__
+    print(f"[debug] ({type_name}) {val}")
+    return val
+
+
+# ===== NEW: Functional Programming =====
+
+def _map_fn(args):
+    """map(fn, arr) - apply fn to each element"""
+    fn, arr = args[0], args[1]
+    if not isinstance(arr, list):
+        raise FPLPError("map() second argument must be an array")
+    result = []
+    for item in arr:
+        result.append(fn(item))
+    return result
+
+def _filter_fn(args):
+    """filter(fn, arr) - keep elements where fn returns truthy"""
+    fn, arr = args[0], args[1]
+    if not isinstance(arr, list):
+        raise FPLPError("filter() second argument must be an array")
+    result = []
+    for item in arr:
+        if fn(item):
+            result.append(item)
+    return result
+
+def _reduce_fn(args):
+    """reduce(fn, arr, initial) - accumulate"""
+    fn, arr = args[0], args[1]
+    if not isinstance(arr, list):
+        raise FPLPError("reduce() second argument must be an array")
+    if not arr:
+        return args[2] if len(args) > 2 else None
+    start = 1
+    acc = arr[0]
+    if len(args) > 2:
+        acc = args[2]
+        start = 0
+    for i in range(start, len(arr)):
+        acc = fn(acc, arr[i])
+    return acc
+
+def _all_fn(args):
+    """all(arr) - true if all elements are truthy"""
+    arr = args[0]
+    if not isinstance(arr, list):
+        raise FPLPError("all() argument must be an array")
+    for item in arr:
+        if not item:
+            return False
+    return True
+
+def _any_fn(args):
+    """any(arr) - true if any element is truthy"""
+    arr = args[0]
+    if not isinstance(arr, list):
+        raise FPLPError("any() argument must be an array")
+    for item in arr:
+        if item:
+            return True
+    return False
+
+def _sum_fn(args):
+    """sum(arr) - sum of array elements"""
+    arr = args[0]
+    if not isinstance(arr, list):
+        raise FPLPError("sum() argument must be an array")
+    total = 0
+    for item in arr:
+        total += item
+    return total
+
+def _product_fn(args):
+    """product(arr) - product of array elements"""
+    arr = args[0]
+    if not isinstance(arr, list):
+        raise FPLPError("product() argument must be an array")
+    total = 1
+    for item in arr:
+        total *= item
+    return total
+
+def _flatten_fn(args):
+    """flatten(arr) - flatten nested arrays one level"""
+    arr = args[0]
+    if not isinstance(arr, list):
+        raise FPLPError("flatten() argument must be an array")
+    result = []
+    for item in arr:
+        if isinstance(item, list):
+            result.extend(item)
+        else:
+            result.append(item)
+    return result
+
+def _zip_fn(args):
+    """zip(a, b) - zip two arrays into array of pairs"""
+    a, b = args[0], args[1]
+    if not isinstance(a, list) or not isinstance(b, list):
+        raise FPLPError("zip() arguments must be arrays")
+    result = []
+    n = min(len(a), len(b))
+    for i in range(n):
+        result.append([a[i], b[i]])
+    return result
+
+def _enumerate_fn(args):
+    """enumerate(arr) - return [[index, value], ...]"""
+    arr = args[0]
+    if not isinstance(arr, list):
+        raise FPLPError("enumerate() argument must be an array")
+    result = []
+    for i, item in enumerate(arr):
+        result.append([i, item])
+    return result
+
+
+# ===== NEW: Char Code Conversion =====
+
+def _chr_fn(args):
+    """chr(n) - convert int to character"""
+    return chr(int(args[0]))
+
+def _ord_fn(args):
+    """ord(c) - convert character to int"""
+    s = str(args[0])
+    if len(s) != 1:
+        raise FPLPError("ord() requires a single character")
+    return ord(s)
+
+
+# ===== NEW: Number Formatting =====
+
+def _hex_fn(args):
+    """hex(n) - convert to hex string"""
+    return hex(int(args[0]))
+
+def _bin_fn(args):
+    """bin(n) - convert to binary string"""
+    return bin(int(args[0]))
+
+def _oct_fn(args):
+    """oct(n) - convert to octal string"""
+    return oct(int(args[0]))
+
+def _bool_fn(args):
+    """bool(x) - convert to bool"""
+    return bool(args[0])
+
+def _sign_fn(args):
+    """sign(x) - return -1, 0, or 1"""
+    val = args[0]
+    if val > 0: return 1
+    if val < 0: return -1
+    return 0
+
+def _clamp_fn(args):
+    """clamp(x, lo, hi) - clamp value between lo and hi"""
+    x, lo, hi = args[0], args[1], args[2]
+    if x < lo: return lo
+    if x > hi: return hi
+    return x
+
+def _lerp_fn(args):
+    """lerp(a, b, t) - linear interpolation"""
+    a, b, t = args[0], args[1], args[2]
+    return a + (b - a) * t
+
+
+# ===== NEW: Misc Utilities =====
+
+def _copy_fn(args):
+    """copy(x) - shallow copy of array or map"""
+    val = args[0]
+    if isinstance(val, list):
+        return list(val)
+    if isinstance(val, dict):
+        return dict(val)
+    return val
+
+def _id_fn(args):
+    """id(x) - return memory identity (pointer)"""
+    return id(args[0])
+
+def _repeat_fn(args):
+    """repeat(s, n) - repeat string n times"""
+    s, n = str(args[0]), int(args[1])
+    return s * n
+
+def _random_fn(args):
+    """random() or random(max) - random float"""
+    if len(args) == 0:
+        return random.random()
+    return random.random() * float(args[0])
+
+
 # ===== NEW: File IO Functions =====
 
 def _read_file(args):
@@ -452,6 +691,45 @@ BUILTINS = {
     "reverse": BuiltinFunction("reverse", _reverse, min_args=1, max_args=1),
     "sort": BuiltinFunction("sort", _sort_, min_args=1, max_args=1),
     "slice": BuiltinFunction("slice", _slice_, min_args=1, max_args=3),
+    # Type checks
+    "is_nil": BuiltinFunction("is_nil", _is_nil, min_args=1, max_args=1),
+    "is_bool": BuiltinFunction("is_bool", _is_bool, min_args=1, max_args=1),
+    "is_int": BuiltinFunction("is_int", _is_int, min_args=1, max_args=1),
+    "is_float": BuiltinFunction("is_float", _is_float, min_args=1, max_args=1),
+    "is_string": BuiltinFunction("is_string", _is_string, min_args=1, max_args=1),
+    "is_array": BuiltinFunction("is_array", _is_array, min_args=1, max_args=1),
+    "is_map": BuiltinFunction("is_map", _is_map, min_args=1, max_args=1),
+    "is_fn": BuiltinFunction("is_fn", _is_fn, min_args=1, max_args=1),
+    # Assertion & debug
+    "assert": BuiltinFunction("assert", _assert, min_args=1, max_args=2),
+    "debug": BuiltinFunction("debug", _debug, min_args=1, max_args=1),
+    # Functional
+    "map": BuiltinFunction("map", _map_fn, min_args=2, max_args=2),
+    "filter": BuiltinFunction("filter", _filter_fn, min_args=2, max_args=2),
+    "reduce": BuiltinFunction("reduce", _reduce_fn, min_args=2, max_args=3),
+    "all": BuiltinFunction("all", _all_fn, min_args=1, max_args=1),
+    "any": BuiltinFunction("any", _any_fn, min_args=1, max_args=1),
+    "sum": BuiltinFunction("sum", _sum_fn, min_args=1, max_args=1),
+    "product": BuiltinFunction("product", _product_fn, min_args=1, max_args=1),
+    "flatten": BuiltinFunction("flatten", _flatten_fn, min_args=1, max_args=1),
+    "zip": BuiltinFunction("zip", _zip_fn, min_args=2, max_args=2),
+    "enumerate": BuiltinFunction("enumerate", _enumerate_fn, min_args=1, max_args=1),
+    # Char code
+    "chr": BuiltinFunction("chr", _chr_fn, min_args=1, max_args=1),
+    "ord": BuiltinFunction("ord", _ord_fn, min_args=1, max_args=1),
+    # Number formatting
+    "hex": BuiltinFunction("hex", _hex_fn, min_args=1, max_args=1),
+    "bin": BuiltinFunction("bin", _bin_fn, min_args=1, max_args=1),
+    "oct": BuiltinFunction("oct", _oct_fn, min_args=1, max_args=1),
+    "bool": BuiltinFunction("bool", _bool_fn, min_args=1, max_args=1),
+    "sign": BuiltinFunction("sign", _sign_fn, min_args=1, max_args=1),
+    "clamp": BuiltinFunction("clamp", _clamp_fn, min_args=3, max_args=3),
+    "lerp": BuiltinFunction("lerp", _lerp_fn, min_args=3, max_args=3),
+    # Misc
+    "copy": BuiltinFunction("copy", _copy_fn, min_args=1, max_args=1),
+    "id": BuiltinFunction("id", _id_fn, min_args=1, max_args=1),
+    "repeat": BuiltinFunction("repeat", _repeat_fn, min_args=2, max_args=2),
+    "random": BuiltinFunction("random", _random_fn, min_args=0, max_args=1),
 }
 
 # Merge graphics functions (lazy import to avoid circular deps)

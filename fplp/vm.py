@@ -16,6 +16,42 @@ class Closure:
     def __str__(self): return f"<fn {self.code.name}>"
     __repr__ = __str__
 
+    def call(self, args):
+        """Call this closure with the given args, using a temporary VM."""
+        from .environment import Environment as _Env
+        if len(args) != self.arity:
+            raise VMError(f"expected {self.arity} args, got {len(args)}")
+        _env = _Env(self.env)
+        for i in range(self.arity):
+            _env.store[self.code.names[i]] = args[i]
+        # Use a fresh mini VM to execute this closure in isolation
+        sub = VM()
+        sub.frames.append(Frame(self.code, _env))
+        return sub._exec()
+
+    def __call__(self, *args):
+        return self.call(list(args))
+
+
+# Keep a thread-local reference for Closure.call()
+import threading
+_vm_local = threading.local()
+
+
+# Keep a thread-local reference for Closure.call()
+import threading
+_vm_local = threading.local()
+
+def _get_vm():
+    """Get or create a VM for Closure.call()."""
+    if not hasattr(_vm_local, 'vm'):
+        _vm_local.vm = VM()
+    return _vm_local.vm
+
+def _set_vm(vm):
+    """Set the current VM for this thread."""
+    _vm_local.vm = vm
+
 
 class Frame:
     __slots__ = ('code', 'ip', 'env')
@@ -179,7 +215,11 @@ def _build():
     def _RET(vm, f, a, c):
         r = vm.stack[vm.sp]; vm.sp -= 1
         vm.frames.pop()
-        if vm.frames: _s(vm, r)
+        if vm.frames:
+            _s(vm, r)
+        else:
+            # Last frame — push value back so _exec() can return it
+            vm.sp += 1; vm.stack[vm.sp] = r
 
     t[MKFN] = _MKFN; t[CALL] = _CALL; t[RET] = _RET
 
@@ -314,6 +354,7 @@ class VM:
         return self._exec()
 
     def _exec(self):
+        _set_vm(self)  # register as current VM for Closure.call()
         frames = self.frames
         dispatch = _DISPATCH
         while frames:
