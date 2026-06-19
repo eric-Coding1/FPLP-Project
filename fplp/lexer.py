@@ -97,6 +97,8 @@ class Lexer:
         self.line = 1
         self.col = 1
         self._tokens_cache = None
+        self._auto_correct = True
+        self._corrections = []
 
     def _current(self):
         if self.pos >= len(self.source):
@@ -171,6 +173,27 @@ class Lexer:
             self._advance()
         word = self.source[start:self.pos]
         tok_type = KEYWORDS.get(word, IDENT)
+
+        # Auto-correct keyword typos — skip known builtins to avoid false positives
+        if tok_type == IDENT and self._auto_correct:
+            from .fuzzy import correct_keyword
+            # Lazily build builtin name filter
+            if not hasattr(self, '_builtin_names'):
+                self._builtin_names = set()
+                try:
+                    from .builtins import BUILTINS
+                    self._builtin_names = set(k.lower() for k in BUILTINS.keys()
+                                              if isinstance(k, str) and not k.startswith('_'))
+                except ImportError:
+                    pass
+            if word.lower() not in self._builtin_names:
+                fixed = correct_keyword(word.lower())
+                if fixed:
+                    tok_type = KEYWORDS[fixed]
+                    self._corrections.append((word, fixed, self.line, self.col - len(word)))
+                    # Replace the literal with the corrected keyword so downstream parsers see the real value
+                    word = fixed
+
         return Token(tok_type, word, self.line, self.col - len(word))
 
     def next_token(self):
@@ -245,6 +268,12 @@ class Lexer:
         # Unknown
         self._advance()
         return Token(ILLEGAL, ch, tok_line, tok_col)
+
+    def get_corrections(self):
+        """Return list of auto-corrections made during tokenization and clear them."""
+        c = list(self._corrections)
+        self._corrections.clear()
+        return c
 
     def tokenize(self):
         """Tokenize the entire source and return a list of tokens."""

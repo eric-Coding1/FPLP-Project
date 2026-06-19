@@ -52,7 +52,10 @@ def _build():
             env = env.outer
         if name in BUILTINS:
             _s(vm, BUILTINS[name]); return
-        raise VMError(f"undefined variable '{name}'")
+        hint = _suggest_name(name, f.env)
+        msg = f"undefined variable '{name}'"
+        if hint: msg += f" (did you mean '{hint}'?)"
+        raise VMError(msg)
 
     def _STORE(vm, f, a, c):
         val = vm.stack[vm.sp]; vm.sp -= 1
@@ -63,7 +66,10 @@ def _build():
                 env.store[name] = val
                 _s(vm, val); return
             env = env.outer
-        raise VMError(f"undefined variable '{name}'")
+        hint = _suggest_name(name, f.env)
+        msg = f"undefined variable '{name}'"
+        if hint: msg += f" (did you mean '{hint}'?)"
+        raise VMError(msg)
 
     def _DEFINE(vm, f, a, c):
         val = vm.stack[vm.sp]; vm.sp -= 1
@@ -254,6 +260,28 @@ def _jif(vm, f, a):
     if not _truthy(vm.stack[vm.sp]):
         f.ip = a
     vm.sp -= 1
+
+
+# ---------------------------------------------------------------------------
+# Variable name suggestion for auto-correction
+# ---------------------------------------------------------------------------
+
+def _suggest_name(name, env):
+    """Find the closest known variable name to a mistyped one."""
+    from .fuzzy import suggest_variable
+
+    # Collect all visible variable names
+    known = set()
+    e = env
+    while e:
+        known.update(e.store.keys())
+        e = e.outer
+
+    if not known:
+        return None
+
+    suggested, dist = suggest_variable(name, known, max_distance=3)
+    return suggested
 
 
 _DISPATCH = _build()

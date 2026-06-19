@@ -564,6 +564,51 @@ LIB_RE = {
     "escape": BuiltinFunction("re.escape", _re_escape, min_args=1, max_args=1),
 }
 
+
+# ======================================================================
+# fuzzy — 模糊匹配与纠错
+# ======================================================================
+
+def _fuzzy_levenshtein(args):
+    a = str(args[0])
+    b = str(args[1])
+    if len(a) < len(b):
+        a, b = b, a
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a):
+        curr = [i + 1]
+        for j, cb in enumerate(b):
+            cost = 0 if ca == cb else 1
+            curr.append(min(
+                curr[j] + 1,       # deletion
+                prev[j + 1] + 1,   # insertion
+                prev[j] + cost     # substitution
+            ))
+        prev = curr
+    return prev[-1]
+
+def _fuzzy_closest(args):
+    """fuzzy.closest(word, candidates) → returns best match or nil."""
+    word = str(args[0])
+    candidates = args[1]
+    if not candidates:
+        return None
+    best = None
+    best_dist = 4
+    for c in candidates:
+        d = _fuzzy_levenshtein([word, str(c)])
+        if d < best_dist:
+            best_dist = d
+            best = c
+    return best
+
+LIB_FUZZY = {
+    "distance": BuiltinFunction("fuzzy.distance", _fuzzy_levenshtein, min_args=2, max_args=2),
+    "closest": BuiltinFunction("fuzzy.closest", _fuzzy_closest, min_args=2, max_args=2),
+}
+
 # ======================================================================
 # path — 路径操作
 # ======================================================================
@@ -1009,4 +1054,5 @@ LIBS = {
     "proc": LIB_PROC,
     "net": LIB_NET,
     "io": LIB_IO,
+    "fuzzy": LIB_FUZZY,
 }

@@ -47,7 +47,17 @@ class Parser:
         self.lexer = lexer
         self.tokens = []
         self.pos = 0
+        self._corrections = []
         self._tokenize()
+
+    def get_corrections(self):
+        """Return and clear auto-correction warnings."""
+        c = list(self._corrections)
+        self._corrections.clear()
+        return c
+
+    def _log_correction(self, original, fixed, line, col):
+        self._corrections.append((original, fixed, line, col))
 
     def _tokenize(self):
         """Collect all tokens from lexer."""
@@ -56,6 +66,9 @@ class Parser:
             self.tokens.append(tok)
             if tok.type == EOF:
                 break
+        # Collect lexer auto-corrections
+        for original, fixed, line, col in self.lexer.get_corrections():
+            self._log_correction(original, fixed, line, col)
 
     def _current(self):
         if self.pos < len(self.tokens):

@@ -178,6 +178,48 @@ fn cmd_clear() {
 }
 
 # ====================================================================
+# 自动纠错 — 使用内置 fuzzy 库
+# ====================================================================
+
+fn suggest_cmd(word) {
+    let commands = ["help", "clear", "exit", "shutdown", "ls", "cd", "pwd",
+                    "cat", "calc", "monitor", "info", "date", "disk",
+                    "mkdir", "rm", "echo", "whoami", "version"]
+
+    # 精确匹配直接返回
+    for c in commands {
+        if c == word { return word }
+    }
+
+    # 常见拼写错误映射
+    let typos = {
+        "hlep": "help", "hlp": "help", "hepl": "help",
+        "cleal": "clear", "clr": "clear", "claer": "clear",
+        "wit": "exit", "exti": "exit", "exot": "exit",
+        "shut": "shutdown", "shutdow": "shutdown",
+        "lst": "ls", "lss": "ls", "lls": "ls",
+        "catt": "cat", "cta": "cat",
+        "cal": "calc", "calcu": "calc", "calcl": "calc",
+        "montior": "monitor", "monit": "monitor", "monitr": "monitor",
+        "dte": "date", "dat": "date",
+        "dsk": "disk", "diskc": "disk",
+        "makedir": "mkdir", "md": "mkdir",
+        "delt": "rm", "del": "rm", "rme": "rm",
+        "ecoh": "echo",
+        "whoam": "whoami", "whomi": "whoami",
+        "ver": "version", "verion": "version", "verson": "version"}
+
+    let typo_match = typos[word]
+    if typo_match != nil { return typo_match }
+
+    # 使用 fuzzy 库做模糊匹配
+    let best = fuzzy.closest(word, commands)
+    if best != nil { return best }
+
+    return word
+}
+
+# ====================================================================
 # 主循环
 # ====================================================================
 
@@ -197,6 +239,14 @@ loop _running {
 
     # 跳过空输入（不需要 continue，直接用 if 包装）
     if line != "" {
+        # 自动纠错：尝试匹配最接近的命令
+        let suggested = suggest_cmd(cmd)
+        if cmd != suggested {
+            print("  未找到命令: '" + cmd + "'，您要输入的是 '" + suggested + "' 吗？")
+            if suggested != cmd and suggested != "" { cmd = suggested }
+            else { cmd = "" }
+        }
+
         if cmd == "help" { app_help() }
         else if cmd == "clear" { cmd_clear() }
         else if cmd == "exit" or cmd == "shutdown" { _running = false }
@@ -213,7 +263,7 @@ loop _running {
         else if cmd == "echo" { print(arg) }
         else if cmd == "whoami" { print(os.username()) }
         else if cmd == "version" { print("FPLP-OS v1.0 | " + sys.version()) }
-        else { print("未知命令: " + cmd + "  输入 help 查看命令") }
+        else if cmd != "" { print("未知命令: " + cmd + "  输入 help 查看命令") }
 
         print()
     }
